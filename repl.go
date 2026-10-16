@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/KenjiShiratsuki/PokedexCLI/internal/pokeapi"
 )
 
-func startRepl(state *config) {
+func startRepl(cfg *config) {
 	reader := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("Pokedex > ")
@@ -16,9 +18,12 @@ func startRepl(state *config) {
 		if len(words) == 0 {
 			continue
 		}
-		command, exists := state.commandList[words[0]]
+		command, exists := cfg.commandList[words[0]]
 		if exists {
-			command.callback(state)
+			err := command.callback(cfg)
+			if err != nil {
+				fmt.Println(err)
+			}
 		} else {
 			fmt.Println("Unknown Command")
 		}
@@ -40,28 +45,21 @@ func getCommands() map[string]cliCommand {
 		},
 		"exit": {
 			name:        "exit",
-			description: "Exit the Pokedex",
+			description: "Exits the Pokedex",
 			callback:    commandExit,
+		},
+		"map": {
+			name:        "map",
+			description: "Displays the next 20 areas",
+			callback:    commandMapf,
+		},
+		"mapb": {
+			name:        "mapb",
+			description: "Displays the previous 20 areas",
+			callback:    commandMapb,
 		},
 	}
 	return commands
-}
-
-func help(cfg *config) error {
-	fmt.Println("Welcome to the Pokedex!")
-	fmt.Print("Usage:\n")
-	allCommands := ""
-	for _, command := range getCommands() {
-		allCommands += command.name + ": " + command.description + "\n"
-	}
-	print(allCommands)
-	return nil
-}
-
-func commandExit(cfg *config) error {
-	fmt.Print("Closing the Pokedex... Goodbye!\n")
-	os.Exit(0)
-	return fmt.Errorf("Error exiting program, use ctrl+c to terminate cli")
 }
 
 func cleanInput(text string) []string {
@@ -71,5 +69,8 @@ func cleanInput(text string) []string {
 }
 
 type config struct {
-	commandList map[string]cliCommand
+	commandList   map[string]cliCommand
+	pokeapiClient pokeapi.Client
+	NextLocations string
+	PrevLocations string
 }
