@@ -7,11 +7,18 @@ import (
 )
 
 func (c *Client) ListLocations(pageURL string) (Locations, error) {
-	url := baseURL + "/location-area"
+	url := baseURL + "/location-area?offset=0&limit=20"
 	if pageURL != "" {
 		url = pageURL
 	}
-
+	if dat, ok := c.cache.Get(pageURL); ok {
+		locationsResp := Locations{}
+		err := json.Unmarshal(dat, &locationsResp)
+		if err != nil {
+			return Locations{}, err
+		}
+		return locationsResp, nil
+	}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return Locations{}, err
@@ -27,7 +34,7 @@ func (c *Client) ListLocations(pageURL string) (Locations, error) {
 	if err != nil {
 		return Locations{}, err
 	}
-
+	c.cache.Add(url, dat)
 	locationsResp := Locations{}
 	err = json.Unmarshal(dat, &locationsResp)
 	if err != nil {
